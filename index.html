@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>osu!mania Simulation 4k</title>
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            const errDiv = document.createElement('div');
+            errDiv.style.position = 'absolute';
+            errDiv.style.top = '10px';
+            errDiv.style.left = '10px';
+            errDiv.style.color = 'red';
+            errDiv.style.zIndex = '9999';
+            errDiv.style.backgroundColor = 'black';
+            errDiv.style.padding = '10px';
+            errDiv.style.border = '2px solid red';
+            errDiv.style.maxWidth = '400px';
+            errDiv.style.wordWrap = 'break-word';
+            errDiv.textContent = `JS Error: ${message} at line ${lineno}:${colno}`;
+            document.body.appendChild(errDiv);
+        };
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="sidebar-trigger"></div>
+    <div id="settings">
+        <div class="tabs">
+            <button class="tab-btn active" id="tab-game">Game Settings</button>
+            <button class="tab-btn" id="tab-custom">Customization</button>
+        </div>
+        
+        <div id="section-game" class="settings-section">
+            <div class="control-group">
+                <label>
+                    <strong>Import .osz Map</strong>
+                    <input type="file" id="osz-upload" accept=".osz">
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label class="pattern-checkbox-label">
+                    <input type="checkbox" id="no-fail-checkbox">
+                    Enable No-Fail Mode
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label class="pattern-checkbox-label">
+                    <input type="checkbox" id="half-time">
+                    Half Time
+                </label>
+                <label class="pattern-checkbox-label" style="margin-top: 10px; display: block;">
+                    <input type="checkbox" id="double-time">
+                    Double Time
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label for="speed-slider">Scroll Speed (1-40)</label>
+                <input type="range" id="speed-slider" min="1" max="40" value="20">
+            </div>
+
+            <details style="margin-bottom: 10px; padding: 10px; background: #333; border-radius: 4px; border: 1px solid #555;">
+                <summary style="cursor: pointer; font-weight: bold;">Practice Pattern Generator</summary>
+                
+                <div class="control-group" style="margin-top: 10px;">
+                    <label for="audio-upload">Background Music (.mp3/.ogg)</label>
+                    <input type="file" id="audio-upload" accept="audio/*">
+                </div>
+                
+                <div class="control-group">
+                    <label for="bpm-input">Song BPM</label>
+                    <input type="number" id="bpm-input" min="60" max="300" value="120">
+                </div>
+                
+                <div class="control-group">
+                    <label for="density-slider">Pattern Length</label>
+                    <input type="range" id="density-slider" min="0.5" max="3" step="0.5" value="1">
+                </div>
+                
+                <div class="control-group">
+                    <label for="practice-duration-input">Practice Duration (s)</label>
+                    <input type="number" id="practice-duration-input" value="120" min="10" max="600">
+                </div>
+
+                <div class="control-group" id="pattern-selections">
+                    <label><strong>Select Patterns</strong></label>
+                    <!-- Pattern checkboxes injected here by JS -->
+                </div>
+                
+                <div class="control-group">
+                    <label>
+                        Load Map JSON
+                        <input type="file" id="map-upload" accept=".json">
+                    </label>
+                </div>
+            </details>
+        </div>
+
+        <div id="section-custom" class="settings-section" style="display: none;">
+            <div class="category">
+                <h3>UI Scaling</h3>
+                <div class="control-group">
+                    <label for="scale-score">Score Size</label>
+                    <input type="range" id="scale-score" min="0.5" max="3" step="0.1" value="1">
+                </div>
+                <div class="control-group">
+                    <label for="scale-accuracy">Accuracy Size</label>
+                    <input type="range" id="scale-accuracy" min="0.5" max="3" step="0.1" value="1">
+                </div>
+                <div class="control-group">
+                    <label for="scale-kps">KPS Size</label>
+                    <input type="range" id="scale-kps" min="0.5" max="3" step="0.1" value="1">
+                </div>
+                <div class="control-group">
+                    <label for="scale-pie">Pie Chart Size</label>
+                    <input type="range" id="scale-pie" min="0.5" max="3" step="0.1" value="1">
+                </div>
+                <div class="control-group">
+                    <label for="scale-hp">HP Bar Size</label>
+                    <input type="range" id="scale-hp" min="0.5" max="3" step="0.1" value="1">
+                </div>
+                <div class="control-group">
+                    <label for="scale-judgment">Judgment Bar Size</label>
+                    <input type="range" id="scale-judgment" min="0.5" max="3" step="0.1" value="1">
+                </div>
+                <div class="control-group">
+                    <label for="scale-fps">FPS Size</label>
+                    <input type="range" id="scale-fps" min="0.5" max="3" step="0.1" value="1">
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="pattern-checkbox-label">
+                    <input type="checkbox" id="upscroll-toggle">
+                    Upscroll Mode
+                </label>
+            </div>
+            
+            <div class="control-group">
+                <label class="pattern-checkbox-label">
+                    <input type="checkbox" id="stage-light-toggle" checked>
+                    Enable Stage Lights
+                </label>
+            </div>
+
+            <div class="control-group" id="stage-light-opacity-group">
+                <label for="stage-light-opacity-slider">Stage Light Intensity</label>
+                <input type="range" id="stage-light-opacity-slider" min="0.05" max="1" step="0.05" value="0.15">
+            </div>
+
+            <div class="control-group">
+                <label class="pattern-checkbox-label">
+                    <input type="checkbox" id="hit-sound-toggle" checked>
+                    Enable Hit Sounds
+                </label>
+            </div>
+
+            <div class="control-group" id="hit-sound-upload-group">
+                <label for="hit-sound-upload">Custom Hit Sound (.wav/.mp3)</label>
+                <input type="file" id="hit-sound-upload" accept="audio/*">
+            </div>
+            <div class="control-group">
+                <label>Keybinds (Click to change)</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="key-0" class="keybind-input" value="A" readonly>
+                    <input type="text" id="key-1" class="keybind-input" value="S" readonly>
+                    <input type="text" id="key-2" class="keybind-input" value="K" readonly>
+                    <input type="text" id="key-3" class="keybind-input" value="L" readonly>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="lane-width-slider">Column Width</label>
+                <input type="range" id="lane-width-slider" min="40" max="150" value="100">
+            </div>
+
+            <div class="control-group">
+                <label for="note-size-slider">Circle Size</label>
+                <input type="range" id="note-size-slider" min="10" max="38" value="38">
+            </div>
+
+            <div class="control-group">
+                <label for="circle-color-picker">Circle Color</label>
+                <input type="color" id="circle-color-picker" value="#ffffff">
+            </div>
+
+            <div class="control-group">
+                <label for="ln-body-color-picker">Slider Body Color</label>
+                <input type="color" id="ln-body-color-picker" value="#ffffff">
+            </div>
+
+            <div class="control-group">
+                <label for="ln-border-color-picker">Slider Border Color</label>
+                <input type="color" id="ln-border-color-picker" value="#ffffff">
+            </div>
+            <details class="category">
+                <summary><h3>Colors</h3></summary>
+                <div class="control-group">
+                    <label for="hp-color-high">High HP Color</label>
+                    <input type="color" id="hp-color-high" value="#33cc33">
+                </div>
+                <div class="control-group">
+                    <label for="hp-color-mid">Mid HP Color</label>
+                    <input type="color" id="hp-color-mid" value="#ff9933">
+                </div>
+                <div class="control-group">
+                    <label for="hp-color-low">Low HP Color</label>
+                    <input type="color" id="hp-color-low" value="#ff0000">
+                </div>
+                <div class="control-group">
+                    <label for="fps-color-picker">FPS Text Color</label>
+                    <input type="color" id="fps-color-picker" value="#00ff00">
+                </div>
+                <div class="control-group">
+                    <label for="kps-color-picker">KPS Text Color</label>
+                    <input type="color" id="kps-color-picker" value="#a8b2c1">
+                </div>
+            </details>
+        </div>
+            
+        <button id="start-btn">Start Practice</button>
+        <div id="status-message">Adjust settings and click Start.</div>
+    </div>
+    <div id="game-wrapper">
+        <div id="hud-score" class="draggable-hud" data-hud="score">000000</div>
+        <div id="hud-accuracy" class="draggable-hud" data-hud="accuracy">100.00%</div>
+        <div id="hud-kps" class="draggable-hud" data-hud="kps">0 KPS</div>
+        <div id="hud-fps" class="draggable-hud" data-hud="fps">0 FPS</div>
+        <div id="hud-pie" class="draggable-hud" data-hud="pie">
+            <canvas id="progress-pie" width="60" height="60"></canvas>
+        </div>
+        <div id="hud-hp" class="draggable-hud" data-hud="hp">
+            <div id="hp-bar-bg"><div id="hp-bar-fill"></div></div>
+        </div>
+        <div id="hud-judgment-meter" class="draggable-hud" data-hud="judgment">
+            <div id="judgment-meter-bg">
+                <div id="judgment-meter-center"></div>
+                <div id="judgment-meter-ticks"></div>
+            </div>
+        </div>
+        
+        <div id="game-container">
+            <div id="combo"></div>
+            <div id="judgement"></div>
+            <canvas id="game-canvas" width="400" height="800"></canvas>
+        </div>
+    </div>
+    <audio id="bgm"></audio>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="patterns.js"></script>
+    <script src="oszParser.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
