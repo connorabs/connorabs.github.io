@@ -63,10 +63,10 @@ async function parseOsz(file) {
     const zip = new JSZip();
     const contents = await zip.loadAsync(file);
 
-    // 1. Find all .osu files
+    // 1. Find all .osu files (case-insensitive, including nested directories)
     const osuFiles = [];
     for (const filename in contents.files) {
-        if (filename.endsWith('.osu') && !contents.files[filename].dir) {
+        if (filename.toLowerCase().endsWith('.osu') && !contents.files[filename].dir) {
             osuFiles.push(filename);
         }
     }
@@ -74,17 +74,24 @@ async function parseOsz(file) {
     if (osuFiles.length === 0) {
         throw new Error("No .osu files found in the archive.");
     }
+    
+    console.log(`Found ${osuFiles.length} .osu file(s) in archive.`);
 
     // 2. We want to find 4K maps (CircleSize: 4) and Mode: 3 (Mania)
     let validDifficulties = [];
+    let rejectedReasons = [];
     
     for (const filename of osuFiles) {
-        const text = await contents.files[filename].async("string");
-        const lines = text.split(/\r\n|\n\r|\n/);
+        const rawText = await contents.files[filename].async("string");
+        // Strip BOM (Byte Order Mark) and normalize line endings (handle \r\n, \n, bare \r)
+        const text = rawText.replace(/^\uFEFF/, '');
+        const lines = text.split(/\r\n|\n\r|\r|\n/);
         
         let mode = getLineValue(lines, "Mode");
         let cs = getLineValue(lines, "CircleSize");
         let version = getLineValue(lines, "Version") || "Unknown Difficulty";
+        
+        console.log(`  [${filename}] Mode=${mode}, CircleSize=${cs}, Version="${version}"`);
         
         if (mode === "3" && cs === "4") {
             validDifficulties.push({
@@ -92,11 +99,19 @@ async function parseOsz(file) {
                 name: version,
                 text: text
             });
+        } else {
+            let reason = '';
+            if (mode !== "3") reason += `Mode is ${mode ?? 'missing'} (need 3 for mania). `;
+            if (cs !== "4") reason += `CircleSize is ${cs ?? 'missing'} (need 4 for 4K).`;
+            rejectedReasons.push(`  - ${filename}: ${reason}`);
         }
     }
 
     if (validDifficulties.length === 0) {
-        throw new Error("No 4-Key osu!mania difficulty found in this archive. We currently only support 4K maps.");
+        const details = rejectedReasons.length > 0 
+            ? "\n\nRejected difficulties:\n" + rejectedReasons.join("\n")
+            : "";
+        throw new Error(`No 4-Key osu!mania difficulty found in this archive. We currently only support 4K maps.${details}`);
     }
 
     let selectedOsu = null;
@@ -118,8 +133,8 @@ async function parseOsz(file) {
     
     console.log(`Selected difficulty: ${selectedOsu}`);
 
-    // 3. Parse Metadata
-    const lines = selectedOsuText.split(/\r\n|\n\r|\n/);
+    // 3. Parse Metadata (re-split in case text was modified)
+    const lines = selectedOsuText.split(/\r\n|\n\r|\r|\n/);
     const audioFilename = getLineValue(lines, "AudioFilename");
     const odString = getLineValue(lines, "OverallDifficulty");
     const od = odString ? parseFloat(odString) : 8;
@@ -133,20 +148,36 @@ async function parseOsz(file) {
     let audioBufferData = null;
     
     if (audioFilename) {
-        let actualAudioKey = Object.keys(contents.files).find(k => k.toLowerCase() === audioFilename.toLowerCase());
+        // Case-insensitive audio file lookup — also handle nested paths
+        const audioLower = audioFilename.toLowerCase();
+        let actualAudioKey = Object.keys(contents.files).find(k => {
+            const kLower = k.toLowerCase();
+            // Match full path or just the filename portion
+            return kLower === audioLower || kLower.endsWith('/' + audioLower);
+        });
         
         if (actualAudioKey && contents.files[actualAudioKey]) {
             console.log(`Extracting audio: ${actualAudioKey}`);
             audioBufferData = await contents.files[actualAudioKey].async("arraybuffer");
         } else {
-            throw new Error(`Audio file '${audioFilename}' not found in the archive.`);
+            // Fallback: try to find any audio file in the archive
+            const audioExtensions = ['.mp3', '.ogg', '.wav', '.flac'];
+            const fallbackKey = Object.keys(contents.files).find(k => 
+                audioExtensions.some(ext => k.toLowerCase().endsWith(ext)) && !contents.files[k].dir
+            );
+            if (fallbackKey) {
+                console.warn(`Audio file '${audioFilename}' not found, using fallback: ${fallbackKey}`);
+                audioBufferData = await contents.files[fallbackKey].async("arraybuffer");
+            } else {
+                throw new Error(`Audio file '${audioFilename}' not found in the archive.`);
+            }
         }
     } else {
         throw new Error("AudioFilename not specified in the .osu file.");
     }
 
     // 5. Parse HitObjects
-    const hitObjectsStart = lines.findIndex(l => l.trim() === "[HitObjects]");
+    const hitObjectsStart = lines.findIndex(l => l.trim().toLowerCase() === "[hitobjects]");
     if (hitObjectsStart === -1) {
         throw new Error("No HitObjects section found.");
     }
@@ -163,6 +194,8 @@ async function parseOsz(file) {
         const x = parseInt(parts[0], 10);
         const startTime = parseInt(parts[2], 10); // keep in ms
         const type = parseInt(parts[3], 10);
+        
+        if (isNaN(x) || isNaN(startTime) || isNaN(type)) continue;
         
         // Map X to Lane (4K mode: 0-3)
         // Formula: Math.floor(x * keys / 512)
@@ -194,7 +227,7 @@ async function parseOsz(file) {
     // Parse TimingPoints for SV and BPM
     let bpm = 120;
     const timingPoints = [];
-    const timingPointsStart = lines.findIndex(l => l.trim() === "[TimingPoints]");
+    const timingPointsStart = lines.findIndex(l => l.trim().toLowerCase() === "[timingpoints]");
     if (timingPointsStart !== -1) {
         for (let i = timingPointsStart + 1; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -209,6 +242,8 @@ async function parseOsz(file) {
                 
                 const timeSec = parseFloat(timeStr); // keep in ms
                 const beatLength = parseFloat(beatLengthStr);
+                
+                if (isNaN(timeSec) || isNaN(beatLength)) continue;
                 
                 let sv = 1.0;
                 if (beatLength > 0) { // uninherited point
@@ -249,9 +284,24 @@ async function parseOsz(file) {
     };
 }
 
+/**
+ * Robust key-value parser for .osu files.
+ * Handles: BOM chars, leading/trailing whitespace, spaces around colons,
+ * and case-insensitive key matching.
+ */
 function getLineValue(lines, key) {
-    const line = lines.find(l => l.startsWith(`${key}:`));
-    if (!line) return null;
-    return line.split(`${key}:`)[1].trim();
+    const keyLower = key.toLowerCase();
+    for (let i = 0; i < lines.length; i++) {
+        // Strip any remaining BOM/zero-width chars and trim whitespace
+        const cleaned = lines[i].replace(/[\uFEFF\u200B]/g, '').trim();
+        // Match "Key:" or "Key :" with optional whitespace around the colon
+        const colonIdx = cleaned.indexOf(':');
+        if (colonIdx === -1) continue;
+        const lineKey = cleaned.substring(0, colonIdx).trim();
+        if (lineKey.toLowerCase() === keyLower) {
+            return cleaned.substring(colonIdx + 1).trim();
+        }
+    }
+    return null;
 }
 

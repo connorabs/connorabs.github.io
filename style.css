@@ -19,10 +19,9 @@
 body {
     margin: 0;
     padding: 0;
-    background-color: var(--bg-color);
-    background-image: radial-gradient(circle at 50% 50%, #1a1a24 0%, #0f0f13 100%);
+    background-color: #000;
     color: var(--text-color);
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -78,7 +77,7 @@ body {
     padding: 10px;
     border-radius: 6px;
     cursor: pointer;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 700;
     transition: all 0.2s;
@@ -138,7 +137,7 @@ body {
     border-radius: 4px;
     font-weight: bold;
     cursor: pointer;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
 }
 
 .keybind-input:focus {
@@ -186,7 +185,7 @@ input[type="file"] {
     padding: 10px;
     border-radius: 6px;
     color: white;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 12px;
     cursor: pointer;
 }
@@ -204,7 +203,7 @@ input[type="file"] {
     border: none;
     padding: 15px;
     border-radius: 6px;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 16px;
     font-weight: 900;
     cursor: pointer;
@@ -226,12 +225,9 @@ input[type="file"] {
 #game-container {
     position: relative;
     width: 400px;
-    height: 800px;
-    border-radius: 12px;
-    /* box-shadow removed for CPU optimization */
+    border-radius: 0;
     overflow: hidden;
-    background: rgba(0, 0, 0, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: linear-gradient(to right, #000 0%, transparent 20%, transparent 80%, #000 100%), #0d0d12;
 }
 
 #ui-layer {
@@ -254,9 +250,10 @@ input[type="file"] {
 .draggable-hud {
     position: absolute;
     color: white;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     cursor: grab;
     user-select: none;
+    z-index: 10;
     z-index: 1000;
     transition: transform 0.1s ease-out;
 }
@@ -267,21 +264,28 @@ input[type="file"] {
 }
 
 #hud-score {
-    font-size: 32px;
-    font-weight: 900;
-    letter-spacing: 2px;
+    font-size: 48px;
+    font-weight: 200;
+    letter-spacing: 4px;
     color: #fff;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    top: 50px;
-    right: 50px;
+    top: 30px;
+    right: 40px;
 }
 
 #hud-accuracy {
-    font-size: 24px;
-    font-weight: bold;
-    color: #a8b2c1;
-    top: 90px;
-    right: 50px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 28px;
+    font-weight: 200;
+    color: #fff;
+    top: 80px;
+    right: 40px;
+}
+
+#hud-progress-pie {
+    top: 130px;
+    right: 40px;
 }
 
 #hud-kps {
@@ -300,53 +304,61 @@ input[type="file"] {
     right: 50px;
 }
 
-#hud-pie {
-    top: 180px;
-    right: 50px;
-}
-
 #progress-pie {
     border-radius: 50%;
 }
 
 /* HP Bar HUD */
 #hud-hp {
-    top: 260px;
-    right: 50px;
-    width: 20px;
-    height: 300px;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 8px;
 }
 #hp-bar-bg {
     width: 100%;
     height: 100%;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
     position: relative;
-    overflow: hidden;
 }
 #hp-bar-fill {
     position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
     width: 100%;
-    height: 100%; /* Will be set via JS */
-    background: linear-gradient(to top, #ff3366, #ff9933, #33cc33);
-    border-radius: 10px;
-    transition: height 0.1s linear;
+    height: 100%;
+    background: #fff;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 5px #fff;
+    transition: width 0.1s linear;
+}
+
+#hp-bar-fill::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #fff, 0 0 20px #fff;
 }
 
 /* Judgment Meter HUD */
 #hud-judgment-meter {
-    bottom: 50px;
+    position: absolute;
+    bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
     width: 200px;
     height: 20px;
+    z-index: 20;
 }
 #judgment-meter-bg {
     width: 100%;
     height: 4px;
-    background: rgba(255, 255, 255, 0.2);
+    background: linear-gradient(to right, #ffcc00, #33ccff, #ffffff, #33ccff, #ffcc00);
     position: relative;
     top: 8px;
 }
@@ -379,43 +391,45 @@ input[type="file"] {
     top: 40%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 40px;
-    font-weight: 900;
-    opacity: 0.2;
-    /* text-shadow removed for CPU optimization */
+    font-size: 80px;
+    font-weight: 100;
+    color: #fff;
+    opacity: 0.8;
+    text-shadow: 0 0 10px rgba(255,255,255,0.3);
     transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .combo-pop {
-    transform: translate(-50%, -50%) scale(1.2) !important;
-    opacity: 0.8 !important;
+    transform: translate(-50%, -50%) scale(1.05) !important;
+    opacity: 1 !important;
 }
 
 #judgement {
-    position: absolute;
-    top: 46%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 4px;
-    height: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity 0.2s, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    font-size: 0;
-    line-height: 0;
-    overflow: hidden;
-    pointer-events: none;
+    display: none;
 }
 
 .judgement-show {
     opacity: 1 !important;
-    transform: translate(-50%, -150%) scale(1.3) !important;
+    transform: translate(-50%, -150%) scale(1.1) !important;
 }
 
 #game-canvas {
     display: block;
     width: 100%;
     height: 100%;
+}
+
+#hud-ur-bar {
+    width: 200px;
+    height: 20px;
+    position: absolute;
+    bottom: 20px;
+    left: calc(50% - 100px);
+    border: 1px dashed transparent;
+    transition: border-color 0.2s, transform 0.1s ease-out;
+}
+
+#hud-ur-bar:hover {
+    border: 1px dashed rgba(255, 255, 255, 0.4);
 }
 

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>osu!mania Simulation 4k</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;700&display=swap" rel="stylesheet">
     <script>
         window.onerror = function(message, source, lineno, colno, error) {
             const errDiv = document.createElement('div');
@@ -58,8 +59,13 @@
             </div>
 
             <div class="control-group">
-                <label for="speed-slider">Scroll Speed (1-40)</label>
-                <input type="range" id="speed-slider" min="1" max="40" value="20">
+                <label for="speed-slider">Scroll Speed (1-80)</label>
+                <input type="range" id="speed-slider" min="1" max="80" value="20">
+            </div>
+
+            <div class="control-group">
+                <label for="offset-slider">Universal Offset: <span id="offset-value">0ms</span></label>
+                <input type="range" id="offset-slider" min="-200" max="200" value="0" step="1">
             </div>
 
             <details style="margin-bottom: 10px; padding: 10px; background: #333; border-radius: 4px; border: 1px solid #555;">
@@ -127,6 +133,10 @@
                     <input type="range" id="scale-judgment" min="0.5" max="3" step="0.1" value="1">
                 </div>
                 <div class="control-group">
+                    <label for="scale-ur-bar-size">UR Bar Size</label>
+                    <input type="range" id="scale-ur-bar-size" min="0.5" max="3" step="0.1" value="1">
+                </div>
+                <div class="control-group">
                     <label for="scale-fps">FPS Size</label>
                     <input type="range" id="scale-fps" min="0.5" max="3" step="0.1" value="1">
                 </div>
@@ -136,6 +146,15 @@
                     <input type="checkbox" id="upscroll-toggle">
                     Upscroll Mode
                 </label>
+            </div>
+            <div class="control-group">
+                <label for="fps-limit-select">FPS Limit</label>
+                <select id="fps-limit-select" style="width: 100%; background: #222; color: white; border: 1px solid #444; border-radius: 4px; padding: 4px;">
+                    <option value="vsync">VSync (Smooth)</option>
+                    <option value="200">200 FPS</option>
+                    <option value="1000">1000 FPS</option>
+                    <option value="uncapped">Uncapped</option>
+                </select>
             </div>
             
             <div class="control-group">
@@ -177,18 +196,28 @@
             </div>
 
             <div class="control-group">
+                <label for="stage-height-slider">Stage Height</label>
+                <input type="range" id="stage-height-slider" min="400" max="2000" value="800" step="10">
+            </div>
+
+            <div class="control-group">
                 <label for="note-size-slider">Circle Size</label>
-                <input type="range" id="note-size-slider" min="10" max="38" value="38">
+                <input type="range" id="note-size-slider" min="10" max="80" value="38">
+            </div>
+
+            <div class="control-group">
+                <label for="judgement-size-slider">Judgement Text Size</label>
+                <input type="range" id="judgement-size-slider" min="10" max="100" value="48">
             </div>
 
             <div class="control-group">
                 <label for="circle-color-picker">Circle Color</label>
-                <input type="color" id="circle-color-picker" value="#ffffff">
+                <input type="color" id="circle-color-picker" value="#b366ff">
             </div>
 
             <div class="control-group">
                 <label for="ln-body-color-picker">Slider Body Color</label>
-                <input type="color" id="ln-body-color-picker" value="#ffffff">
+                <input type="color" id="ln-body-color-picker" value="#1a1a1a">
             </div>
 
             <div class="control-group">
@@ -217,6 +246,18 @@
                     <label for="kps-color-picker">KPS Text Color</label>
                     <input type="color" id="kps-color-picker" value="#a8b2c1">
                 </div>
+                <div class="control-group">
+                    <label for="ur-center-color-picker">UR Center Color</label>
+                    <input type="color" id="ur-center-color-picker" value="#ffffff">
+                </div>
+                <div class="control-group">
+                    <label for="ur-inner-color-picker">UR Inner Color</label>
+                    <input type="color" id="ur-inner-color-picker" value="#33ccff">
+                </div>
+                <div class="control-group">
+                    <label for="ur-outer-color-picker">UR Outer Color</label>
+                    <input type="color" id="ur-outer-color-picker" value="#ffcc00">
+                </div>
             </details>
         </div>
             
@@ -225,25 +266,23 @@
     </div>
     <div id="game-wrapper">
         <div id="hud-score" class="draggable-hud" data-hud="score">000000</div>
-        <div id="hud-accuracy" class="draggable-hud" data-hud="accuracy">100.00%</div>
+        <div id="hud-accuracy" class="draggable-hud" data-hud="accuracy">
+            <span id="accuracy-text">100.00%</span>
+        </div>
+        <div id="hud-progress-pie" class="draggable-hud" data-hud="pie">
+            <canvas id="progress-pie" width="40" height="40"></canvas>
+        </div>
         <div id="hud-kps" class="draggable-hud" data-hud="kps">0 KPS</div>
         <div id="hud-fps" class="draggable-hud" data-hud="fps">0 FPS</div>
-        <div id="hud-pie" class="draggable-hud" data-hud="pie">
-            <canvas id="progress-pie" width="60" height="60"></canvas>
-        </div>
         <div id="hud-hp" class="draggable-hud" data-hud="hp">
             <div id="hp-bar-bg"><div id="hp-bar-fill"></div></div>
         </div>
-        <div id="hud-judgment-meter" class="draggable-hud" data-hud="judgment">
-            <div id="judgment-meter-bg">
-                <div id="judgment-meter-center"></div>
-                <div id="judgment-meter-ticks"></div>
-            </div>
-        </div>
+
         
         <div id="game-container">
             <div id="combo"></div>
             <div id="judgement"></div>
+            <div id="hud-ur-bar" class="draggable-hud" data-hud="urBar"></div>
             <canvas id="game-canvas" width="400" height="800"></canvas>
         </div>
     </div>
